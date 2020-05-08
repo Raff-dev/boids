@@ -19,9 +19,6 @@ public class boidController : MonoBehaviour
         if (manager == null) return;
         transform.Translate(Vector3.forward * manager.velocity * Time.deltaTime);
 
-        List<RaycastHit> obstacleHits = getObstacles();
-
-
         nearbyBoids = getNearbyBoids(manager.boids);
         getBehaviour(nearbyBoids,
             out float[] rotation,
@@ -29,11 +26,13 @@ public class boidController : MonoBehaviour
             out Vector3 separationVector,
             out int nearbyCount,
             out int tooCloseCount);
+
         stayInBoundaries();
-        avoidObstacles(obstacleHits);
-        staySeparated(separationVector, tooCloseCount);
+        avoidObstacles();
         stayAligned(rotation, nearbyCount);
-        stayCohesed(avgPosition, nearbyCount);
+        followAttractionPoint(avgPosition, nearbyCount);
+        followAttractionPoint(manager.attractionPoint.transform.position, 1);
+        avoidPoint(separationVector, tooCloseCount);
     }
 
     private void getBehaviour(
@@ -67,34 +66,51 @@ public class boidController : MonoBehaviour
         }
     }
 
-    private void avoidObstacles(List<RaycastHit> hits)
+    private void avoidObstacles()
     {
-        foreach (RaycastHit hit in hits)
+        List<RaycastHit> obstacleHits = getObstacles();
+        Vector3 obstaclePosition = new Vector3(0, 0, 0);
+        int count = 0;
+        float distance = 0;
+        foreach (RaycastHit hit in obstacleHits)
         {
-
+            distance += hit.distance;
+            count++;
+            obstaclePosition += hit.point - transform.position;
+            // ------draw obstacle direction------
+            // Debug.DrawLine(transform.position, hit.point, Color.red);
+        }
+        if (count > 0)
+        {
+            obstaclePosition /= count;
+            distance /= count;
+            avoidPoint(obstaclePosition, 100f / distance / distance + 1);
         }
     }
 
     private void stayAligned(float[] rotation, int nearbyCount)
     {
-        if (manager.alignment)
+        if (manager.alignment && nearbyCount > 0)
         {
+            float turningRate = manager.turningRate * 1.2f * Time.deltaTime < 180f ? manager.turningRate * 1.2f * Time.deltaTime : 180f;
             transform.rotation = Quaternion.RotateTowards(
                 transform.rotation,
                  Quaternion.Euler(
                     rotation[0] / nearbyCount,
                     rotation[1] / nearbyCount,
                     rotation[2] / nearbyCount),
-                manager.turningRate * 1.2f * Time.deltaTime);
+                turningRate);
         }
     }
 
-    private void stayCohesed(Vector3 avgPosition, int nearbyCount)
+    private void followAttractionPoint(Vector3 avgPosition, int nearbyCount)
     {
         if (manager.cohesion && nearbyCount > 0)
         {
+
             // ------draw average position------
             // Debug.DrawLine(avgPosition, avgPosition + Vector3.forward, Color.green);
+            float turningRate = manager.turningRate * Time.deltaTime < 180f ? manager.turningRate * Time.deltaTime : 180f;
             avgPosition /= nearbyCount;
             var c = Quaternion.LookRotation(avgPosition - transform.position);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, c,
@@ -102,16 +118,19 @@ public class boidController : MonoBehaviour
         }
     }
 
-    private void staySeparated(Vector3 separationVector, int tooCloseCount)
+    private void avoidPoint(Vector3 separationVector, float magnifier)
     {
-        if (manager.separation && tooCloseCount > 0)
+        if (manager.separation && magnifier > 0)
         {
-            Vector3 vector = transform.position - separationVector;
-            Debug.DrawLine(transform.position, vector, Color.magenta);
+            Vector3 vector = -separationVector;
+            float turningRate = manager.turningRate * magnifier * Time.deltaTime < 180f ? manager.turningRate * magnifier * Time.deltaTime : 180f;
+
+            // ------draw separation direction------
+            // Debug.DrawRay(transform.position, vector, Color.magenta);
             var s = Quaternion.LookRotation(vector);
 
             transform.rotation = Quaternion.RotateTowards(transform.rotation, s,
-                manager.turningRate * 1.2f * Time.deltaTime);
+                manager.turningRate * magnifier * Time.deltaTime);
         }
     }
 
@@ -120,7 +139,8 @@ public class boidController : MonoBehaviour
         List<GameObject> nearbyBoids = new List<GameObject>();
         foreach (GameObject boid in boids)
         {
-            bool isNearby = Vector3.Distance(transform.position, boid.transform.position) < manager.detectionRadius;
+            bool isNearby = Vector3.Distance(transform.position, boid.transform.position)
+                            < manager.boidDetectionRadius;
             if (isNearby && boid != gameObject) nearbyBoids.Add(boid);
         }
         return nearbyBoids;
@@ -132,7 +152,7 @@ public class boidController : MonoBehaviour
         if (manager.raycastsCount <= 0) return null;
 
         int count = manager.raycastsCount;
-        float radius = manager.detectionRadius;
+        float radius = manager.obstacleDetectionRadius;
         float step = 360f / count * Mathf.Deg2Rad;
 
         for (float fi = startFi; fi <= endFi; fi += step)
@@ -150,15 +170,14 @@ public class boidController : MonoBehaviour
                     transform.rotation.eulerAngles.z) * new Vector3(x, y, z);
 
                 //  ------Draw Raycasts------
-                //  Debug.DrawRay(transform.position, vector, Color.red);
+                // Debug.DrawRay(transform.position, vector, Color.red);
 
                 RaycastHit hit;
                 if (Physics.Raycast(transform.position, vector, out hit, radius))
                 {
                     //  ------Draw hit------
-                    // Debug.DrawRay(transform.position, vector, Color.green);
+                    // Debug.DrawLine(transform.position, hit.point, Color.green);
                     obstacleHits.Add(hit);
-                    Debug.DrawLine(transform.position, hit.transform.position, Color.red);
                 }
             }
         }
@@ -184,7 +203,10 @@ public class boidController : MonoBehaviour
             }
         }
         if (outOfBoundary[0] || outOfBoundary[1] || outOfBoundary[2])
+        {
             transform.position = new Vector3(-coords[0], -coords[1], -coords[2]);
+            gameObject.GetComponent<Renderer>().material.color = Color.red;
+        }
     }
 
 }

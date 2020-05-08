@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class boidManager : MonoBehaviour
 {
+    public GameObject attractionPoint;
     public bool alignment = true;
     public bool separation = true;
     public bool cohesion = true;
@@ -13,7 +14,8 @@ public class boidManager : MonoBehaviour
     public int boidsCount = 50;
     public float velocity = 8f;
 
-    public float detectionRadius = 8f;
+    public float boidDetectionRadius = 8f;
+    public float obstacleDetectionRadius = 8f;
     public float turningRate = 30f;
     public int raycastsCount = 20;
 
@@ -23,6 +25,7 @@ public class boidManager : MonoBehaviour
     void Start()
     {
         boids = generateBoids();
+        attractionPoint.GetComponent<Renderer>().material.color = Color.red;
     }
 
     private List<GameObject> generateBoids()
@@ -40,13 +43,13 @@ public class boidManager : MonoBehaviour
                  Random.Range(0, 360f),
                 // 0,
                 Random.Range(0, 360f),
-                90);
+                // Random.Range(0, 360f)
+                90
+                );
             GameObject boid = Instantiate(boidPrefab, spawnPlace, rotation);
             boid.GetComponent<boidController>().manager = this;
             arr.Add(boid);
         }
         return arr;
     }
-
-
 }

@@ -8,6 +8,7 @@ public class boidManager : MonoBehaviour
     public bool alignment = true;
     public bool separation = true;
     public bool cohesion = true;
+    public bool getAttracted = false;
     public float separationDistance = 1f;
 
     public int aquariumSize = 40;

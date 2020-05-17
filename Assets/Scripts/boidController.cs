@@ -31,7 +31,8 @@ public class boidController : MonoBehaviour
         avoidObstacles();
         stayAligned(rotation, nearbyCount);
         followAttractionPoint(avgPosition, nearbyCount);
-        followAttractionPoint(manager.attractionPoint.transform.position, 1);
+        if (manager.getAttracted)
+            followAttractionPoint(manager.attractionPoint.transform.position, 1);
         avoidPoint(separationVector, tooCloseCount);
     }
 

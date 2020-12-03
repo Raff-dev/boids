@@ -1,3 +1,4 @@
+[tags]: <> (C#, Unity, AI)
 Boids is an artificial life simulation, which aims to replicate behaviour of flocks of birds.
 ---
 Individual boids follow three fundamental rules:   
